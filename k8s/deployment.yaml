@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
         - name: cicd-demo-app
-          image: yourdockerhubusername/cicd-demo-app:latest   # <-- must match image Jenkins pushed
+          image: chetanamali/cicd-demo-app:latest   # <-- must match image Jenkins pushed
           ports:
             - containerPort: 80
