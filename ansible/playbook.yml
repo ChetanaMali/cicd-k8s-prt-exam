@@ -1,0 +1,107 @@
+---
+# Play 1: Install Java + Jenkins on ci-master
+- name: Configure ci-master (Jenkins Server)
+  hosts: ci_master
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Java (required for Jenkins)
+      apt:
+        name: openjdk-17-jdk
+        state: present
+
+    - name: Add Jenkins repo key
+      apt_key:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        state: present
+
+    - name: Add Jenkins repo
+      apt_repository:
+        repo: "deb https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+        filename: jenkins
+
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        state: present
+        update_cache: yes
+
+    - name: Ensure Jenkins is started and enabled
+      service:
+        name: jenkins
+        state: started
+        enabled: true
+
+    - name: Verify Jenkins is running
+      command: systemctl is-active jenkins
+      register: jenkins_status
+      changed_when: false
+
+    - name: Show Jenkins status
+      debug:
+        var: jenkins_status.stdout
+
+# Play 2: Install Java + Docker on ci-agent
+- name: Configure ci-agent (Jenkins Agent, Docker enabled)
+  hosts: ci_agent
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Java (required for Jenkins agent)
+      apt:
+        name: openjdk-17-jdk
+        state: present
+
+    - name: Install prerequisite packages for Docker
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repo
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker is started and enabled
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Add ubuntu user to docker group (so Jenkins agent can run docker)
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Verify Docker is running
+      command: systemctl is-active docker
+      register: docker_status
+      changed_when: false
+
+    - name: Show Docker status
+      debug:
+        var: docker_status.stdout
